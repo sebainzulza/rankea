@@ -8,7 +8,8 @@ type AuthContextType = {
   user: User | null
   session: Session | null
   loading: boolean
-  signInWithMagicLink: (email: string) => Promise<{ error: string | null }>
+  requestLoginCode: (email: string) => Promise<{ error: string | null }>
+  verifyLoginCode: (email: string, token: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -61,19 +62,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signInWithMagicLink = async (email: string): Promise<{ error: string | null }> => {
+  const requestLoginCode = async (email: string): Promise<{ error: string | null }> => {
     // Barrera de exclusividad: solo @inacapmail.cl
     if (!email.toLowerCase().endsWith(INACAP_DOMAIN)) {
       return { error: `Solo se permiten correos ${INACAP_DOMAIN}` }
     }
 
+    // No pasamos emailRedirectTo: el correo entrega un código de 6 dígitos
+    // en lugar de un magic link. Esto evita que Microsoft Defender (Safe
+    // Links de Outlook/@inacapmail.cl) consuma el OTP al pre-escanear links.
     const { error } = await supabase.auth.signInWithOtp({
       email: email.toLowerCase(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
     })
 
+    if (error) return { error: error.message }
+    return { error: null }
+  }
+
+  const verifyLoginCode = async (
+    email: string,
+    token: string,
+  ): Promise<{ error: string | null }> => {
+    const cleanToken = token.replace(/\s+/g, '')
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.toLowerCase(),
+      token: cleanToken,
+      type: 'email',
+    })
     if (error) return { error: error.message }
     return { error: null }
   }
@@ -83,7 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithMagicLink, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, requestLoginCode, verifyLoginCode, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   )

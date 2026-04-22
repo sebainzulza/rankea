@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { TrendingUp, Mail, Lock, ArrowRight, Loader2, Smartphone } from 'lucide-react'
+import { TrendingUp, Mail, Lock, ArrowRight, Loader2, Smartphone, KeyRound } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,11 +13,13 @@ import InstalarAppDialog from '@/components/InstalarAppDialog'
 const LAST_EMAIL_KEY = 'rankea.lastEmail'
 
 export default function LoginPage() {
-  const { user, loading, signInWithMagicLink } = useAuth()
+  const { user, loading, requestLoginCode, verifyLoginCode } = useAuth()
   const { isStandalone, device } = usePWAInstall()
   const [email, setEmail] = useState(() => localStorage.getItem(LAST_EMAIL_KEY) ?? '')
+  const [code, setCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [step, setStep] = useState<'email' | 'code'>('email')
   const [installOpen, setInstallOpen] = useState(false)
 
   const isMobile = device === 'ios' || device === 'android'
@@ -26,20 +28,53 @@ export default function LoginPage() {
   // Si ya está autenticado, redirige al home
   if (!loading && user) return <Navigate to="/" replace />
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
 
-    const { error } = await signInWithMagicLink(email)
+    const { error } = await requestLoginCode(email)
 
     if (error) {
       toast.error(error)
     } else {
       localStorage.setItem(LAST_EMAIL_KEY, email.toLowerCase().trim())
-      setEmailSent(true)
-      toast.success('¡Revisa tu correo! Te enviamos un link mágico.')
+      setStep('code')
+      toast.success('Te enviamos un código. Puede tardar hasta 3 min en llegar.')
     }
 
+    setSubmitting(false)
+  }
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setVerifying(true)
+
+    const { error } = await verifyLoginCode(email, code)
+
+    if (error) {
+      toast.error(
+        error.toLowerCase().includes('expired') || error.toLowerCase().includes('invalid')
+          ? 'El código es incorrecto o expiró. Pide uno nuevo.'
+          : error,
+      )
+      setVerifying(false)
+      return
+    }
+
+    // El AuthProvider detectará la sesión vía onAuthStateChange y RequireAuth
+    // redirigirá al home automáticamente.
+    toast.success('¡Bienvenido!')
+  }
+
+  const handleResend = async () => {
+    setSubmitting(true)
+    const { error } = await requestLoginCode(email)
+    if (error) {
+      toast.error(error)
+    } else {
+      setCode('')
+      toast.success('Nuevo código enviado. Puede tardar hasta 3 min.')
+    }
     setSubmitting(false)
   }
 
@@ -85,7 +120,7 @@ export default function LoginPage() {
       )}
 
       <Card className="w-full max-w-md border-border/60">
-        {!emailSent ? (
+        {step === 'email' ? (
           <>
             <CardHeader className="space-y-1">
               <CardTitle className="text-xl">Ingresa a la plataforma</CardTitle>
@@ -94,7 +129,7 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleRequestCode} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Correo institucional</Label>
                   <div className="relative">
@@ -116,11 +151,11 @@ export default function LoginPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Enviando link...
+                      Enviando código...
                     </>
                   ) : (
                     <>
-                      Enviar Magic Link
+                      Enviar código
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}
@@ -132,39 +167,87 @@ export default function LoginPage() {
                   <Lock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <div className="text-muted-foreground">
                     <p className="font-medium text-foreground mb-1">¿Cómo funciona?</p>
-                    <p>Recibirás un link en tu correo. Al hacer clic, quedarás logueado automáticamente. Sin contraseñas que recordar.</p>
+                    <p>
+                      Recibirás un código de 6 dígitos en tu correo institucional. Lo ingresas aquí
+                      y listo, sin contraseñas que recordar.
+                    </p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </>
         ) : (
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <div className="p-4 bg-primary/10 rounded-full border border-primary/20">
-                  <Mail className="h-10 w-10 text-primary" />
+          <>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-xl">Ingresa tu código</CardTitle>
+              <CardDescription>
+                Enviamos un código de 6 dígitos a <strong className="text-foreground">{email}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="code">Código de acceso</Label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="code"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      placeholder="123456"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                      className="pl-9 tracking-widest text-center text-lg"
+                      required
+                      autoFocus
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold">¡Revisa tu bandeja!</h2>
-                <p className="text-muted-foreground mt-2">
-                  Enviamos un link mágico a <strong className="text-foreground">{email}</strong>.
-                  Haz clic en el link para ingresar.
+
+                <Button type="submit" className="w-full" disabled={verifying || code.length !== 6}>
+                  {verifying ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Verificando...
+                    </>
+                  ) : (
+                    <>
+                      Ingresar
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              <div className="mt-4 flex flex-col gap-2 text-center text-xs text-muted-foreground">
+                <p>
+                  ¿No llegó el código? Revisa la carpeta de spam o{' '}
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={submitting}
+                    className="text-primary hover:underline disabled:opacity-50"
+                  >
+                    reenvía el código
+                  </button>
+                  .
                 </p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                ¿No llegó? Revisa la carpeta de spam o{' '}
                 <button
-                  onClick={() => setEmailSent(false)}
+                  type="button"
+                  onClick={() => {
+                    setStep('email')
+                    setCode('')
+                  }}
                   className="text-primary hover:underline"
                 >
-                  intenta de nuevo
+                  Usar otro correo
                 </button>
-                .
-              </p>
-            </div>
-          </CardContent>
+              </div>
+            </CardContent>
+          </>
         )}
       </Card>
 
