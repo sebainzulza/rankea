@@ -7,6 +7,7 @@ import HomePage from '@/pages/HomePage'
 import ProfesorDetallePage from '@/pages/ProfesorDetallePage'
 import NuevaResenaPage from '@/pages/NuevaResenaPage'
 import PerfilPage from '@/pages/PerfilPage'
+import AuthCallbackPage from '@/pages/AuthCallbackPage'
 import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -35,6 +36,7 @@ function AppLayout() {
           <Route path="/nueva-resena" element={<RequireAuth><NuevaResenaPage /></RequireAuth>} />
           <Route path="/perfil" element={<RequireAuth><PerfilPage /></RequireAuth>} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

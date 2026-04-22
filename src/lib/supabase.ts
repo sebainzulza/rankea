@@ -12,8 +12,6 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   )
 }
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { flowType: 'implicit' },
-})
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 export type SupabaseClient = typeof supabase
