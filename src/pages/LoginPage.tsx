@@ -1,20 +1,27 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { TrendingUp, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react'
+import { TrendingUp, Mail, Lock, ArrowRight, Loader2, Smartphone } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
+import InstalarAppDialog from '@/components/InstalarAppDialog'
 
 const LAST_EMAIL_KEY = 'rankea.lastEmail'
 
 export default function LoginPage() {
   const { user, loading, signInWithMagicLink } = useAuth()
+  const { isStandalone, device } = usePWAInstall()
   const [email, setEmail] = useState(() => localStorage.getItem(LAST_EMAIL_KEY) ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const [installOpen, setInstallOpen] = useState(false)
+
+  const isMobile = device === 'ios' || device === 'android'
+  const shouldSuggestInstall = isMobile && !isStandalone
 
   // Si ya está autenticado, redirige al home
   if (!loading && user) return <Navigate to="/" replace />
@@ -56,6 +63,26 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold tracking-tight">Rankea</h1>
         <p className="text-muted-foreground mt-2">INACAP Temuco · Exclusivo para estudiantes</p>
       </div>
+
+      {shouldSuggestInstall && (
+        <button
+          type="button"
+          onClick={() => setInstallOpen(true)}
+          className="w-full max-w-md mb-4 flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors p-3 text-left"
+        >
+          <div className="shrink-0 p-2 bg-primary/10 rounded-md border border-primary/20">
+            <Smartphone className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Instala Rankea como app (opcional)</p>
+            <p className="text-xs text-muted-foreground">
+              También puedes usarla como web normal. Instalarla guarda tu sesión y la abre más
+              rápido.
+            </p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        </button>
+      )}
 
       <Card className="w-full max-w-md border-border/60">
         {!emailSent ? (
@@ -145,6 +172,22 @@ export default function LoginPage() {
         Plataforma exclusiva para estudiantes de INACAP Temuco.
         Las reseñas son anónimas y no pueden ser rastreadas por otros usuarios.
       </p>
+
+      {!isStandalone && (
+        <p className="mt-3 text-xs text-muted-foreground text-center">
+          Puedes usar Rankea desde el navegador o{' '}
+          <button
+            type="button"
+            onClick={() => setInstallOpen(true)}
+            className="text-primary hover:underline font-medium"
+          >
+            instalarla como app
+          </button>
+          .
+        </p>
+      )}
+
+      <InstalarAppDialog open={installOpen} onOpenChange={setInstallOpen} />
     </div>
   )
 }
