@@ -195,8 +195,8 @@ export default function LoginPage() {
                       type="text"
                       inputMode="numeric"
                       autoComplete="one-time-code"
-                      pattern="[0-9]{6}"
-                      maxLength={6}
+                      pattern="[0-9]{6,10}"
+                      maxLength={10}
                       placeholder="123456"
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
@@ -207,7 +207,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={verifying || code.length !== 6}>
+                <Button type="submit" className="w-full" disabled={verifying || code.length < 6}>
                   {verifying ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
