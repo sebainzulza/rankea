@@ -20,14 +20,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Carga la sesión inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const init = async () => {
+      const url = new URL(window.location.href)
+      const code = url.searchParams.get('code')
+      const hasHashToken = window.location.hash.includes('access_token=')
+
+      // PKCE: si hay ?code= en la URL, intercambiarlo por sesión antes de decidir
+      // si el usuario está autenticado. Esto evita que RequireAuth redirija a
+      // /login mientras aún no se ha canjeado el código.
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error) {
+          url.searchParams.delete('code')
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+        } else {
+          console.error('[auth] exchangeCodeForSession:', error)
+        }
+      }
+
+      // Flujo implicit (#access_token=...): supabase-js lo procesa solo con
+      // detectSessionInUrl. Cedemos un tick para que termine.
+      if (hasHashToken) {
+        await new Promise((r) => setTimeout(r, 50))
+      }
+
+      const { data: { session } } = await supabase.auth.getSession()
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
-    })
+    }
 
-    // Escucha cambios de auth
+    init()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
