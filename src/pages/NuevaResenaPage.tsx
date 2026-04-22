@@ -32,6 +32,12 @@ const FORM_INICIAL: NuevaResenaForm = {
   semestre: '',
 }
 
+// El insert puede fallar con 23505 (unique_violation) si otro usuario creó la
+// misma fila entre nuestro SELECT y nuestro INSERT. En ese caso reintentamos
+// el SELECT — el ganador de la race ya creó la fila y nosotros usamos su id.
+const isUniqueViolation = (err: unknown): boolean =>
+  typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505'
+
 async function findOrCreateCarrera(nombre: string, userId: string): Promise<string | null> {
   const clean = nombre.trim()
   if (!clean) return null
@@ -47,7 +53,18 @@ async function findOrCreateCarrera(nombre: string, userId: string): Promise<stri
     .insert({ nombre: clean, created_by: userId })
     .select('id')
     .single()
-  if (error) throw error
+  if (error) {
+    if (isUniqueViolation(error)) {
+      const { data: retry, error: retryErr } = await supabase
+        .from('carreras')
+        .select('id')
+        .ilike('nombre', clean)
+        .maybeSingle()
+      if (retryErr) throw retryErr
+      if (retry) return retry.id
+    }
+    throw error
+  }
   return nueva.id
 }
 
@@ -67,7 +84,19 @@ async function findOrCreateProfesor(nombre: string, apellido: string, userId: st
     .insert({ nombre: n, apellido: a, created_by: userId })
     .select('id')
     .single()
-  if (error) throw error
+  if (error) {
+    if (isUniqueViolation(error)) {
+      const { data: retry, error: retryErr } = await supabase
+        .from('profesores')
+        .select('id')
+        .ilike('nombre', n)
+        .ilike('apellido', a)
+        .maybeSingle()
+      if (retryErr) throw retryErr
+      if (retry) return retry.id
+    }
+    throw error
+  }
   return nuevo.id
 }
 
@@ -85,7 +114,18 @@ async function findOrCreateRamo(nombre: string, carreraId: string | null, userId
     .insert({ nombre: clean, carrera_id: carreraId, created_by: userId })
     .select('id')
     .single()
-  if (error) throw error
+  if (error) {
+    if (isUniqueViolation(error)) {
+      const { data: retry, error: retryErr } = await supabase
+        .from('ramos')
+        .select('id')
+        .ilike('nombre', clean)
+        .maybeSingle()
+      if (retryErr) throw retryErr
+      if (retry) return retry.id
+    }
+    throw error
+  }
   return nuevo.id
 }
 
@@ -213,7 +253,11 @@ export default function NuevaResenaPage() {
       navigate(`/profesor/${profesorId}`)
     } catch (err) {
       console.error(err)
-      toast.error('Error al publicar la reseña. Intenta de nuevo.')
+      if (isUniqueViolation(err)) {
+        toast.error('Ya publicaste una reseña para este profe, ramo y semestre. Edita o elimina la anterior desde tu perfil.')
+      } else {
+        toast.error('Error al publicar la reseña. Intenta de nuevo.')
+      }
     } finally {
       setSubmitting(false)
     }
