@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft, Send, Loader2, GraduationCap, Star, MessageSquare, CheckCircle2, ShieldCheck, Lock } from 'lucide-react'
+import { ArrowLeft, Send, Loader2, GraduationCap, Star, MessageSquare, CheckCircle2, ShieldCheck, Lock, Users, UserPlus } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { NuevaResenaForm } from '@/types'
@@ -10,7 +10,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import RatingStars from '@/components/RatingStars'
+
+type SimilarProfesor = { id: string; nombre: string; apellido: string; similitud: number }
 
 const RATING_LABELS: Record<string, { label: string; desc: string }> = {
   calificacion_general: { label: 'Nota general', desc: '¿Cómo calificarías al profe en general?' },
@@ -140,6 +150,7 @@ export default function NuevaResenaPage() {
   const [prefilling, setPrefilling] = useState(false)
   const [touched, setTouched] = useState<Partial<Record<TextField, boolean>>>({})
   const markTouched = (f: TextField) => setTouched(t => ({ ...t, [f]: true }))
+  const [similares, setSimilares] = useState<SimilarProfesor[] | null>(null)
 
   useEffect(() => {
     const profesorId = searchParams.get('profesor_id')
@@ -223,18 +234,17 @@ export default function NuevaResenaPage() {
   if (ratingsMissing) missingSummary.push('Calificaciones: puntúa las 4 categorías')
   if (errors.comentario) missingSummary.push(`Comentario: ${errors.comentario.toLowerCase()}`)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!isValido) return
-    if (!user) {
-      toast.error('Debes iniciar sesión para publicar una reseña.')
-      return
-    }
+  // Si profesorOverrideId viene, usa ese profe directamente (cuando el usuario
+  // confirmó en el modal que un profe similar es el correcto). Si no, ejecuta
+  // el findOrCreate normal con los datos del form.
+  const submitResena = async (profesorOverrideId?: string) => {
+    if (!user) return
     setSubmitting(true)
-
     try {
       const carreraId = await findOrCreateCarrera(form.carrera_nombre, user.id)
-      const profesorId = await findOrCreateProfesor(form.profesor_nombre, form.profesor_apellido, user.id)
+      const profesorId =
+        profesorOverrideId ??
+        (await findOrCreateProfesor(form.profesor_nombre, form.profesor_apellido, user.id))
       const ramoId = await findOrCreateRamo(form.ramo_nombre, carreraId, user.id)
 
       const { error } = await supabase.from('resenas').insert({
@@ -261,6 +271,53 @@ export default function NuevaResenaPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!isValido) return
+    if (!user) {
+      toast.error('Debes iniciar sesión para publicar una reseña.')
+      return
+    }
+
+    // Si el profe vino preseleccionado desde la URL, no buscamos similares —
+    // el usuario ya confirmó que es ese profe.
+    if (profesorIdParam) {
+      void submitResena()
+      return
+    }
+
+    // Buscar profes con nombre/apellido parecido para evitar duplicados
+    // semánticos ("Juan P." vs "Juan Pérez", acentos, typos menores).
+    setSubmitting(true)
+    const { data, error } = await supabase.rpc('find_similar_profesores', {
+      p_nombre: form.profesor_nombre.trim(),
+      p_apellido: form.profesor_apellido.trim(),
+    })
+    if (error) {
+      console.error('[similares] RPC failed, continuamos sin sugerencias:', error)
+      void submitResena()
+      return
+    }
+    const matches = (data ?? []) as SimilarProfesor[]
+    if (matches.length === 0) {
+      void submitResena()
+      return
+    }
+    // Hay similares: pausar submit y mostrar modal para que el user decida
+    setSubmitting(false)
+    setSimilares(matches)
+  }
+
+  const handleConfirmSimilar = (profesorId: string) => {
+    setSimilares(null)
+    void submitResena(profesorId)
+  }
+
+  const handleCreateNewProfesor = () => {
+    setSimilares(null)
+    void submitResena()
   }
 
   const section1Complete = !errors.profesor_nombre && !errors.profesor_apellido && !errors.ramo_nombre && !errors.semestre
@@ -564,6 +621,57 @@ export default function NuevaResenaPage() {
           )}
         </Button>
       </form>
+
+      <Dialog open={similares !== null} onOpenChange={(v) => { if (!v) setSimilares(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2 bg-amber-100 rounded-lg border border-amber-200/80">
+                <Users className="h-5 w-5 text-amber-700" />
+              </div>
+              <DialogTitle>¿Es alguno de estos profes?</DialogTitle>
+            </div>
+            <DialogDescription className="pt-2">
+              Encontramos profes ya registrados con nombres parecidos a{' '}
+              <strong className="text-foreground">{form.profesor_nombre} {form.profesor_apellido}</strong>.
+              Para evitar duplicados, elige uno o crea como profe nuevo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 pt-2">
+            {(similares ?? []).map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => handleConfirmSimilar(s.id)}
+                className="w-full flex items-center gap-3 rounded-lg border border-border bg-secondary/40 hover:bg-primary/10 hover:border-primary/40 transition-colors p-3 text-left"
+              >
+                <div className="p-2 bg-primary/10 rounded-md border border-primary/20 shrink-0">
+                  <GraduationCap className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {s.nombre} {s.apellido}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {Math.round(s.similitud * 100)}% de coincidencia
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <DialogFooter className="pt-3 flex-col sm:flex-row gap-2">
+            <Button variant="ghost" onClick={() => setSimilares(null)} className="sm:mr-auto">
+              Cancelar
+            </Button>
+            <Button variant="outline" onClick={handleCreateNewProfesor}>
+              <UserPlus className="h-4 w-4 mr-1.5" />
+              No, crear como profe nuevo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

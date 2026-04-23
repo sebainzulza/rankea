@@ -56,7 +56,13 @@ export default function ComentariosDialog({ open, onOpenChange }: Props) {
     setSubmitting(false)
     if (error) {
       console.error(error)
-      toast.error('No pudimos enviar tu comentario. Intenta de nuevo.')
+      // 23505 = unique_violation: ya enviaste exactamente este mismo
+      // comentario antes (mismo tipo + mismo mensaje).
+      if ((error as { code?: string }).code === '23505') {
+        toast.error('Ya enviaste este mismo comentario. Cámbialo o elige otro tipo.')
+      } else {
+        toast.error('No pudimos enviar tu comentario. Intenta de nuevo.')
+      }
       return
     }
     toast.success('¡Gracias! Leo todos los comentarios.')
