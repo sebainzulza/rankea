@@ -190,7 +190,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      find_similar_profesores: {
+        Args: { p_nombre: string; p_apellido: string }
+        Returns: {
+          id: string
+          nombre: string
+          apellido: string
+          similitud: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
