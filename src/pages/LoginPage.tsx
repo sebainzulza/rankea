@@ -125,13 +125,13 @@ export default function LoginPage() {
             <CardHeader className="space-y-1">
               <CardTitle className="text-xl">Ingresa a la plataforma</CardTitle>
               <CardDescription>
-                Usa el correo que prefieras (Gmail, INACAP, etc.) — te llegará un código.
+                Solo se permite el acceso con correo <strong>@gmail.com</strong>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRequestCode} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Tu correo</Label>
+                  <Label htmlFor="email">Tu correo Gmail</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input

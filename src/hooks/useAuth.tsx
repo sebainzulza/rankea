@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
-// Validación liviana de email (no chequea dominio, solo formato básico).
+// Solo Gmail. Razón: 100% de delivery garantizado (sin Safe Links de
+// Microsoft 365 que pre-consume OTP), todos tienen Gmail.
+const ALLOWED_DOMAIN = '@gmail.com'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 type AuthContextType = {
@@ -68,10 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!EMAIL_REGEX.test(clean)) {
       return { error: 'Ingresa un correo válido' }
     }
+    if (!clean.endsWith(ALLOWED_DOMAIN)) {
+      return { error: `Solo se aceptan correos ${ALLOWED_DOMAIN}` }
+    }
 
     // El correo entrega un código de 6 dígitos en lugar de un magic link.
-    // Aceptamos cualquier dominio (Gmail, Outlook, INACAP, etc.) para evitar
-    // problemas de delivery con Microsoft Defender Safe Links de @inacapmail.cl.
     const { error } = await supabase.auth.signInWithOtp({
       email: clean,
     })
