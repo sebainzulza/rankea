@@ -596,6 +596,13 @@ export default function NuevaResenaPage() {
               )}
               <p className="text-xs text-muted-foreground">{form.comentario.length}/500</p>
             </div>
+            <div className="mt-3 flex gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <span className="shrink-0">⚠️</span>
+              <span>
+                <strong>Sé honesto y respetuoso.</strong> Las reseñas con insultos, ataques personales,
+                acusaciones graves sin pruebas o datos sensibles del profe serán <strong>eliminadas</strong>.
+              </span>
+            </div>
           </CardContent>
         </Card>
 

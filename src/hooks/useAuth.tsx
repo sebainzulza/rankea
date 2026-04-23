@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
-const INACAP_DOMAIN = '@inacapmail.cl'
+// Validación liviana de email (no chequea dominio, solo formato básico).
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 type AuthContextType = {
   user: User | null
@@ -63,16 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const requestLoginCode = async (email: string): Promise<{ error: string | null }> => {
-    // Barrera de exclusividad: solo @inacapmail.cl
-    if (!email.toLowerCase().endsWith(INACAP_DOMAIN)) {
-      return { error: `Solo se permiten correos ${INACAP_DOMAIN}` }
+    const clean = email.toLowerCase().trim()
+    if (!EMAIL_REGEX.test(clean)) {
+      return { error: 'Ingresa un correo válido' }
     }
 
-    // No pasamos emailRedirectTo: el correo entrega un código de 6 dígitos
-    // en lugar de un magic link. Esto evita que Microsoft Defender (Safe
-    // Links de Outlook/@inacapmail.cl) consuma el OTP al pre-escanear links.
+    // El correo entrega un código de 6 dígitos en lugar de un magic link.
+    // Aceptamos cualquier dominio (Gmail, Outlook, INACAP, etc.) para evitar
+    // problemas de delivery con Microsoft Defender Safe Links de @inacapmail.cl.
     const { error } = await supabase.auth.signInWithOtp({
-      email: email.toLowerCase(),
+      email: clean,
     })
 
     if (error) return { error: error.message }

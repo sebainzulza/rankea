@@ -108,8 +108,8 @@ export default function Navbar() {
             <DialogDescription asChild>
               <div className="space-y-3 pt-2">
                 <p>
-                  Tendrás que pedir un nuevo <strong className="text-foreground">Magic Link</strong> a tu
-                  correo <span className="text-foreground">@inacapmail.cl</span> para volver a entrar.
+                  Tendrás que pedir un nuevo <strong className="text-foreground">código de acceso</strong> a tu
+                  correo para volver a entrar.
                 </p>
                 <div className="rounded-lg bg-secondary border border-border p-3 text-sm">
                   <p className="font-medium text-foreground mb-1">¿Solo quieres salir de la app?</p>

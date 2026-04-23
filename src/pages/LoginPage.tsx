@@ -96,7 +96,7 @@ export default function LoginPage() {
           </div>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Rankea</h1>
-        <p className="text-muted-foreground mt-2">INACAP Temuco · Exclusivo para estudiantes</p>
+        <p className="text-muted-foreground mt-2">Reseñas anónimas de profes · INACAP Temuco</p>
       </div>
 
       {shouldSuggestInstall && (
@@ -125,19 +125,19 @@ export default function LoginPage() {
             <CardHeader className="space-y-1">
               <CardTitle className="text-xl">Ingresa a la plataforma</CardTitle>
               <CardDescription>
-                Solo se permite el acceso con correo <strong>@inacapmail.cl</strong>
+                Usa el correo que prefieras (Gmail, INACAP, etc.) — te llegará un código.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRequestCode} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Correo institucional</Label>
+                  <Label htmlFor="email">Tu correo</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="tunombre@inacapmail.cl"
+                      placeholder="tucorreo@gmail.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-9"
@@ -252,8 +252,8 @@ export default function LoginPage() {
       </Card>
 
       <p className="mt-6 text-xs text-muted-foreground text-center max-w-sm">
-        Plataforma exclusiva para estudiantes de INACAP Temuco.
-        Las reseñas son anónimas y no pueden ser rastreadas por otros usuarios.
+        Las reseñas son <strong>anónimas</strong>: nadie puede saber quién publicó qué.
+        Reseñas con insultos, ataques personales o datos sensibles serán eliminadas.
       </p>
 
       {!isStandalone && (
