@@ -141,16 +141,7 @@ Auto-deploy en Vercel desde la rama `main`. Cada push a `main` genera deploy a p
 Variables de entorno requeridas en Vercel:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-
-## Roadmap
-
-- [ ] Permitir explorar perfiles sin login (reducir fricción).
-- [ ] CTA "Dejar reseña" visible en cada perfil sin requerir auth previa.
-- [ ] Login con Google OAuth además de OTP.
-- [ ] Pre-llenado del form de reseña al venir desde un perfil.
-- [ ] SEO por profesor (meta tags + sitemap).
-- [ ] Sistema de moderación para reseñas reportadas.
-
+- 
 ## Privacidad y moderación
 
 - Las reseñas son **anónimas para otros usuarios**, pero quedan asociadas a tu cuenta en la BD para evitar spam y permitir borrarlas.
