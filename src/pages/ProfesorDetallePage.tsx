@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ArrowLeft, Plus, Loader2, BookOpen } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -153,10 +153,15 @@ export default function ProfesorDetallePage() {
           {/* Ramos */}
           <div className="flex flex-wrap gap-2">
             {profesor.ramos.map((ramo) => (
-              <Badge key={ramo.id} variant="secondary">
-                <BookOpen className="h-3 w-3 mr-1" />
-                {ramo.nombre}
-              </Badge>
+              <Link key={ramo.id} to={`/ramo/${ramo.id}`}>
+                <Badge
+                  variant="secondary"
+                  className="hover:bg-primary/10 hover:border-primary/40 transition-colors cursor-pointer"
+                >
+                  <BookOpen className="h-3 w-3 mr-1" />
+                  {ramo.nombre}
+                </Badge>
+              </Link>
             ))}
           </div>
         </CardContent>

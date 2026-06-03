@@ -12,16 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import RatingStars from '@/components/RatingStars'
 import ResenaCard from '@/components/ResenaCard'
 import ResenasPaywall from '@/components/ResenasPaywall'
-
-// dificultad = promedio de exigencia (1-5). Más alto = más exigente.
-function dificultadInfo(d: number | null): { label: string; className: string } {
-  if (d === null) return { label: 'Sin datos', className: 'text-muted-foreground' }
-  if (d >= 4.5) return { label: 'Muy exigente', className: 'text-red-600' }
-  if (d >= 3.5) return { label: 'Exigente', className: 'text-orange-600' }
-  if (d >= 2.5) return { label: 'Moderado', className: 'text-amber-600' }
-  if (d >= 1.5) return { label: 'Llevadero', className: 'text-emerald-600' }
-  return { label: 'Fácil', className: 'text-emerald-600' }
-}
+import { dificultadInfo } from '@/lib/ratings'
 
 const medalla = (i: number): string => ['🥇', '🥈', '🥉'][i] ?? `${i + 1}.`
 
