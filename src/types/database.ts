@@ -311,6 +311,15 @@ export type Database = {
           similitud: number
         }[]
       }
+      find_similar_ramos: {
+        Args: { p_nombre: string }
+        Returns: {
+          carrera_id: string
+          id: string
+          nombre: string
+          similitud: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

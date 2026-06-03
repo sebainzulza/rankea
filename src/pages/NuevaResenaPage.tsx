@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft, Send, Loader2, GraduationCap, Star, MessageSquare, CheckCircle2, ShieldCheck, Lock, Users, UserPlus } from 'lucide-react'
+import { ArrowLeft, Send, Loader2, GraduationCap, Star, MessageSquare, CheckCircle2, ShieldCheck, Lock, Users, UserPlus, BookOpen } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { NuevaResenaForm } from '@/types'
@@ -21,6 +21,7 @@ import {
 import RatingStars from '@/components/RatingStars'
 
 type SimilarProfesor = { id: string; nombre: string; apellido: string; similitud: number }
+type SimilarRamo = { id: string; nombre: string; carrera_id: string | null; similitud: number }
 
 const RATING_LABELS: Record<string, { label: string; desc: string }> = {
   calificacion_general: { label: 'Nota general', desc: '¿Cómo calificarías al profe en general?' },
@@ -151,6 +152,8 @@ export default function NuevaResenaPage() {
   const [touched, setTouched] = useState<Partial<Record<TextField, boolean>>>({})
   const markTouched = (f: TextField) => setTouched(t => ({ ...t, [f]: true }))
   const [similares, setSimilares] = useState<SimilarProfesor[] | null>(null)
+  const [ramoSugerencias, setRamoSugerencias] = useState<SimilarRamo[]>([])
+  const [ramoElegidoId, setRamoElegidoId] = useState<string | null>(null)
 
   useEffect(() => {
     const profesorId = searchParams.get('profesor_id')
@@ -177,6 +180,21 @@ export default function NuevaResenaPage() {
 
   const setRating = (key: keyof NuevaResenaForm, val: number) => {
     setForm(f => ({ ...f, [key]: val }))
+  }
+
+  // Busca ramos ya registrados con nombre parecido para evitar duplicados.
+  const buscarRamosSimilares = async () => {
+    const nombre = form.ramo_nombre.trim()
+    if (ramoElegidoId || nombre.length < 3) return
+    const { data, error } = await supabase.rpc('find_similar_ramos', { p_nombre: nombre })
+    if (error) {
+      console.error('[ramos similares] RPC falló, continuamos sin sugerencias:', error)
+      return
+    }
+    const matches = (data ?? []) as SimilarRamo[]
+    // Si escribió exactamente un ramo existente, findOrCreate ya lo reutiliza: no sugerimos.
+    const exacto = matches.some((m) => m.nombre.toLowerCase() === nombre.toLowerCase())
+    setRamoSugerencias(exacto ? [] : matches)
   }
 
   const errors = {
@@ -245,7 +263,7 @@ export default function NuevaResenaPage() {
       const profesorId =
         profesorOverrideId ??
         (await findOrCreateProfesor(form.profesor_nombre, form.profesor_apellido, user.id))
-      const ramoId = await findOrCreateRamo(form.ramo_nombre, carreraId, user.id)
+      const ramoId = ramoElegidoId ?? (await findOrCreateRamo(form.ramo_nombre, carreraId, user.id))
 
       const { error } = await supabase.from('resenas').insert({
         profesor_id: profesorId,
@@ -450,8 +468,12 @@ export default function NuevaResenaPage() {
                 id="ramo_nombre"
                 placeholder="Ej: Cálculo I, Programación Orientada a Objetos"
                 value={form.ramo_nombre}
-                onChange={(e) => setForm(f => ({ ...f, ramo_nombre: e.target.value }))}
-                onBlur={() => markTouched('ramo_nombre')}
+                onChange={(e) => {
+                  setForm(f => ({ ...f, ramo_nombre: e.target.value }))
+                  if (ramoElegidoId) setRamoElegidoId(null)
+                  if (ramoSugerencias.length) setRamoSugerencias([])
+                }}
+                onBlur={() => { markTouched('ramo_nombre'); void buscarRamosSimilares() }}
                 autoComplete="off"
                 className={touched.ramo_nombre && errors.ramo_nombre ? 'border-destructive focus-visible:ring-destructive' : ''}
               />
@@ -459,6 +481,43 @@ export default function NuevaResenaPage() {
                 <p className="text-xs text-destructive">{errors.ramo_nombre}</p>
               ) : (
                 <p className="text-xs text-muted-foreground">Nombre de la asignatura que tomaste con este profe.</p>
+              )}
+
+              {/* Confirmación de ramo existente elegido */}
+              {ramoElegidoId && (
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>Usarás un ramo ya registrado (evita duplicados). Edita el campo si quieres cambiarlo.</span>
+                </div>
+              )}
+
+              {/* Sugerencias de ramos parecidos para no crear duplicados */}
+              {!ramoElegidoId && ramoSugerencias.length > 0 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3 space-y-2">
+                  <p className="text-xs text-amber-900 font-medium">
+                    ¿Te refieres a un ramo ya registrado? Elígelo para no duplicarlo:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {ramoSugerencias.map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => {
+                          setRamoElegidoId(r.id)
+                          setForm(f => ({ ...f, ramo_nombre: r.nombre }))
+                          setRamoSugerencias([])
+                        }}
+                        className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-background px-3 py-1 text-xs hover:bg-primary/10 hover:border-primary/40 transition-colors"
+                      >
+                        <BookOpen className="h-3 w-3" />
+                        {r.nombre}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-amber-700">
+                    O ignóralo y sigue con &ldquo;{form.ramo_nombre.trim()}&rdquo; como ramo nuevo.
+                  </p>
+                </div>
               )}
             </div>
 
