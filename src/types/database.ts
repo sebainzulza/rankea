@@ -1,5 +1,5 @@
-// Tipos generados por Supabase MCP (npx supabase gen types typescript).
-// Regenerar cuando cambie el schema.
+// Tipos generados por Supabase MCP (generate_typescript_types).
+// Regenerar cuando cambie el schema (tablas, vistas o funciones).
 
 export type Json =
   | string
@@ -10,6 +10,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
@@ -173,8 +175,22 @@ export type Database = {
             foreignKeyName: "resenas_profesor_id_fkey"
             columns: ["profesor_id"]
             isOneToOne: false
+            referencedRelation: "profesor_stats"
+            referencedColumns: ["profesor_id"]
+          },
+          {
+            foreignKeyName: "resenas_profesor_id_fkey"
+            columns: ["profesor_id"]
+            isOneToOne: false
             referencedRelation: "profesores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resenas_ramo_id_fkey"
+            columns: ["ramo_id"]
+            isOneToOne: false
+            referencedRelation: "ramo_stats"
+            referencedColumns: ["ramo_id"]
           },
           {
             foreignKeyName: "resenas_ramo_id_fkey"
@@ -187,15 +203,111 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profesor_ramo_stats: {
+        Row: {
+          profesor_apellido: string | null
+          profesor_avatar_url: string | null
+          profesor_id: string | null
+          profesor_nombre: string | null
+          promedio_accesibilidad: number | null
+          promedio_exigencia: number | null
+          promedio_explicacion: number | null
+          promedio_general: number | null
+          ramo_id: string | null
+          score_ponderado: number | null
+          total_resenas: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resenas_profesor_id_fkey"
+            columns: ["profesor_id"]
+            isOneToOne: false
+            referencedRelation: "profesor_stats"
+            referencedColumns: ["profesor_id"]
+          },
+          {
+            foreignKeyName: "resenas_profesor_id_fkey"
+            columns: ["profesor_id"]
+            isOneToOne: false
+            referencedRelation: "profesores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resenas_ramo_id_fkey"
+            columns: ["ramo_id"]
+            isOneToOne: false
+            referencedRelation: "ramo_stats"
+            referencedColumns: ["ramo_id"]
+          },
+          {
+            foreignKeyName: "resenas_ramo_id_fkey"
+            columns: ["ramo_id"]
+            isOneToOne: false
+            referencedRelation: "ramos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profesor_stats: {
+        Row: {
+          apellido: string | null
+          avatar_url: string | null
+          nombre: string | null
+          profesor_id: string | null
+          promedio_accesibilidad: number | null
+          promedio_exigencia: number | null
+          promedio_explicacion: number | null
+          promedio_general: number | null
+          score_ponderado: number | null
+          total_resenas: number | null
+        }
+        Relationships: []
+      }
+      ramo_stats: {
+        Row: {
+          carrera_id: string | null
+          codigo: string | null
+          dificultad: number | null
+          nombre: string | null
+          promedio_general: number | null
+          ramo_id: string | null
+          total_profes: number | null
+          total_resenas: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ramos_carrera_id_fkey"
+            columns: ["carrera_id"]
+            isOneToOne: false
+            referencedRelation: "carreras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stats_rankea: {
+        Row: {
+          feedback_pendiente: number | null
+          profes_total: number | null
+          rating_promedio_global: number | null
+          resenas_total: number | null
+          resenas_ultima_semana: number | null
+          resenas_ultimo_mes: number | null
+          snapshot_at: string | null
+          usuarios_que_publicaron: number | null
+          usuarios_total: number | null
+          usuarios_ultima_semana: number | null
+          usuarios_ultimo_mes: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       find_similar_profesores: {
-        Args: { p_nombre: string; p_apellido: string }
+        Args: { p_apellido: string; p_nombre: string }
         Returns: {
+          apellido: string
           id: string
           nombre: string
-          apellido: string
           similitud: number
         }[]
       }

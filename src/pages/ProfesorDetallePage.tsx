@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft, Lock, Plus, Loader2, BookOpen, Star } from 'lucide-react'
+import { ArrowLeft, Plus, Loader2, BookOpen } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { ProfesorConStats, Ramo, Resena } from '@/types'
@@ -10,59 +10,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import RatingStars from '@/components/RatingStars'
-
-// ─── Componente de reseña individual ─────────────────────────────────────────
-function ResenaCard({ resena }: { resena: Resena }) {
-  const fecha = new Date(resena.created_at).toLocaleDateString('es-CL', {
-    year: 'numeric', month: 'short', day: 'numeric',
-  })
-
-  return (
-    <Card className="border-border/60">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <Badge variant="secondary" className="w-fit text-xs">
-              <BookOpen className="h-3 w-3 mr-1" />
-              {resena.ramo?.nombre}
-            </Badge>
-            <span className="text-xs text-muted-foreground">{resena.semestre} · {fecha}</span>
-          </div>
-          <div className="flex flex-col items-center shrink-0 rounded-lg bg-amber-50 border border-amber-200/80 px-3 py-1.5 min-w-[88px]">
-            <span className="text-[10px] uppercase tracking-wider text-amber-700/80 font-semibold leading-none">
-              Nota general
-            </span>
-            <div className="flex items-center justify-center gap-1 mt-1">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              <span className="font-bold text-base leading-none text-amber-900">
-                {resena.calificacion_general.toFixed(1)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Sub-ratings */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'Explicación', val: resena.calificacion_explicacion },
-            { label: 'Exigencia', val: resena.calificacion_exigencia },
-            { label: 'Accesibilidad', val: resena.calificacion_accesibilidad },
-          ].map(({ label, val }) => (
-            <div key={label} className="text-center bg-secondary rounded-lg p-2 border border-border/70">
-              <p className="text-xs text-muted-foreground mb-1">{label}</p>
-              <RatingStars value={val} size="sm" />
-            </div>
-          ))}
-        </div>
-
-        {/* Comentario */}
-        <p className="text-sm text-muted-foreground leading-relaxed italic">
-          &ldquo;{resena.comentario}&rdquo;
-        </p>
-      </CardContent>
-    </Card>
-  )
-}
+import ResenaCard from '@/components/ResenaCard'
+import ResenasPaywall from '@/components/ResenasPaywall'
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function ProfesorDetallePage() {
@@ -223,63 +172,7 @@ export default function ProfesorDetallePage() {
 
       {/* Paywall "proof of work" — reseñas falsas borrosas + overlay */}
       {!hasAportado ? (
-        <div className="relative">
-          {/* Cards borrosas de ejemplo (decorativas, no son reseñas reales) */}
-          <div
-            aria-hidden
-            className="space-y-3 blur-md select-none pointer-events-none"
-          >
-            {[
-              { ramo: 'Cálculo I', comentario: 'Explica muy bien la materia, siempre resuelve dudas fuera de clases.', rating: 4.5 },
-              { ramo: 'Programación', comentario: 'Exigente pero justo, las evaluaciones reflejan lo que se enseña.', rating: 4.0 },
-              { ramo: 'Inglés', comentario: 'Pruebas muy sorpresivas, cuesta seguir el ritmo de la clase.', rating: 2.5 },
-            ].map((r, i) => (
-              <Card key={i} className="border-border/60">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <Badge variant="secondary" className="w-fit text-xs">
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      {r.ramo}
-                    </Badge>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="font-bold text-sm">{r.rating.toFixed(1)}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground italic">&ldquo;{r.comentario}&rdquo;</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Overlay con mensaje */}
-          <div className="absolute inset-0 flex items-start justify-center pt-6">
-            <Card className="border-primary/30 bg-background/95 shadow-lg max-w-md w-[92%]">
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="flex justify-center">
-                  <div className="p-3 bg-primary/10 rounded-full border border-primary/20">
-                    <Lock className="h-7 w-7 text-primary" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base">Las reseñas están bloqueadas</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    No es de pago — es un <strong className="text-foreground">intercambio</strong>.
-                    Publica una reseña tuya sobre cualquier profe que hayas tenido y se
-                    desbloquean todas las demás al instante.
-                  </p>
-                </div>
-                <Button onClick={() => navigate('/nueva-resena')} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Publicar mi reseña para desbloquear
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Es gratis y 100% anónima.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        <ResenasPaywall />
       ) : resenas.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground">
           <p>Aún no hay reseñas para este profesor.</p>

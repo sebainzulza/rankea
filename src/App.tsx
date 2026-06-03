@@ -5,6 +5,7 @@ import Navbar from '@/components/layout/Navbar'
 import LoginPage from '@/pages/LoginPage'
 import HomePage from '@/pages/HomePage'
 import ProfesorDetallePage from '@/pages/ProfesorDetallePage'
+import RamoDetallePage from '@/pages/RamoDetallePage'
 import NuevaResenaPage from '@/pages/NuevaResenaPage'
 import PerfilPage from '@/pages/PerfilPage'
 import AuthCallbackPage from '@/pages/AuthCallbackPage'
@@ -33,6 +34,7 @@ function AppLayout() {
         <Routes>
           <Route path="/" element={<RequireAuth><HomePage /></RequireAuth>} />
           <Route path="/profesor/:id" element={<RequireAuth><ProfesorDetallePage /></RequireAuth>} />
+          <Route path="/ramo/:id" element={<RequireAuth><RamoDetallePage /></RequireAuth>} />
           <Route path="/nueva-resena" element={<RequireAuth><NuevaResenaPage /></RequireAuth>} />
           <Route path="/perfil" element={<RequireAuth><PerfilPage /></RequireAuth>} />
           <Route path="/login" element={<LoginPage />} />

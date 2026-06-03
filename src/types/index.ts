@@ -52,6 +52,52 @@ export type ProfesorConStats = Profesor & {
   ramos: Ramo[]
 }
 
+export type RamoConCarrera = Ramo & { carrera: Carrera | null }
+
+// ─── Vistas de agregación (Fase A: ranking ponderado) ──────────────────────────
+
+/** Fila de la vista `profesor_stats`: agregados + score ponderado por profesor. */
+export type ProfesorStats = {
+  profesor_id: string
+  nombre: string
+  apellido: string
+  avatar_url: string | null
+  total_resenas: number
+  promedio_general: number | null
+  promedio_explicacion: number | null
+  promedio_exigencia: number | null
+  promedio_accesibilidad: number | null
+  /** Ranking ponderado bayesiano (m=3). Úsalo para ordenar, no el promedio crudo. */
+  score_ponderado: number | null
+}
+
+/** Fila de la vista `ramo_stats`: agregados por ramo. dificultad = promedio de exigencia. */
+export type RamoStats = {
+  ramo_id: string
+  nombre: string
+  codigo: string | null
+  carrera_id: string | null
+  total_resenas: number
+  total_profes: number
+  promedio_general: number | null
+  dificultad: number | null
+}
+
+/** Fila de la vista `profesor_ramo_stats`: base de "mejor profe para este ramo". */
+export type ProfesorRamoStats = {
+  profesor_id: string
+  ramo_id: string
+  profesor_nombre: string
+  profesor_apellido: string
+  profesor_avatar_url: string | null
+  total_resenas: number
+  promedio_general: number | null
+  promedio_explicacion: number | null
+  promedio_exigencia: number | null
+  promedio_accesibilidad: number | null
+  score_ponderado: number | null
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export type AuthUser = {
